@@ -2,6 +2,7 @@ package org.scott.dbunit;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Properties;
 
@@ -10,8 +11,7 @@ import javax.sql.DataSource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 /**
- * Used dbunit to dump database contents to XML files.
- *
+ * Used dbunit to prepare database contents based on XML files.
  *
  * @author scott
  *
@@ -20,7 +20,7 @@ public class DatabasePreparer {
 
   public static void main(String args[]) throws Exception {
      if (args.length < 1) {
-       System.out.println("Please specify the test  folder");
+       System.out.println("Please specify the test folder");
        return;
      }
      File testFolder = new File(args[0]);
@@ -29,57 +29,56 @@ public class DatabasePreparer {
        return;
      }
 
+     Properties props ;
      try {
-       dumpNew(testFolder);
+       props = loadProps("app.properties");
+     }
+     catch(FileNotFoundException x) {
+       System.out.println("Could not find the app.properties file in the current working directory.");
+       return;
+     }
+     try {
+       prepareNew(testFolder, props);
      }
      catch(Exception x) {
        System.err.println("Error dumping new db, " + x.getMessage());
      }
      try {
-       dumpInt(testFolder);
+       prepareOld(testFolder, props);
      }
      catch(Exception x) {
        System.err.println("Error dumping old db, " + x.getMessage());
      }
   }
 
-  private static void dumpNew(File testFolder) throws IOException {
-    DataSource pgDataSource = createPostgresDataSource();
+  private static void prepareNew(File testFolder, Properties props) throws Exception {
+    DataSource pgDataSource = createDataSource("pg",  props );
     DatabaseHelper helper = new DatabaseHelper(pgDataSource, null, null);
-    File dumpFile = new File(testFolder, "input_ds.xml");
-    helper.dumpDatabase( dumpFile );
+    File prepFile = new File(testFolder, "input_ds.xml");
+    helper.prepareDatabaseFromPath( prepFile.getAbsolutePath() );
   }
 
-  private static void dumpInt(File testFolder) throws IOException {
-    DataSource pgDataSource = createDb2DataSource();
+  private static void prepareOld(File testFolder, Properties props) throws Exception {
+    DataSource pgDataSource = createDataSource("db2",  props );
     DatabaseHelper helper = new DatabaseHelper(pgDataSource, null, null);
-    File dumpFile = new File(testFolder, "input_dsInt.xml");
-    helper.dumpDatabase( dumpFile );
+    File prepFile = new File(testFolder, "input_dsInt.xml");
+    helper.prepareDatabaseFromPath( prepFile.getPath() );
   }
 
-  private static DataSource createPostgresDataSource() throws IOException {
+  private static Properties loadProps(String fileName) throws IOException {
     Properties props = new Properties();
-    try (FileInputStream in = new FileInputStream("db.properties"); ){
+    try (FileInputStream in = new FileInputStream( fileName ); ){
       props.load(in);
+      return props;
     }
-    DriverManagerDataSource dmDataSource = new DriverManagerDataSource();
-    dmDataSource.setDriverClassName( props.getProperty("pg.driver") );
-    dmDataSource.setUrl( props.getProperty("pg.jdbcurl") );
-    dmDataSource.setUsername( props.getProperty("pg.user") );
-    dmDataSource.setPassword( props.getProperty("pg.password") );
-    return dmDataSource;
   }
 
-  private static DataSource createDb2DataSource() throws IOException {
-    Properties props = new Properties();
-    try (FileInputStream in = new FileInputStream("db.properties"); ){
-      props.load(in);
-    }
+  private static DataSource createDataSource(String prefix, Properties props) throws IOException {
     DriverManagerDataSource dmDataSource = new DriverManagerDataSource();
-    dmDataSource.setDriverClassName( props.getProperty("db2.driver") );
-    dmDataSource.setUrl( props.getProperty("db2.jdbcurl") );
-    dmDataSource.setUsername( props.getProperty("db2.user") );
-    dmDataSource.setPassword( props.getProperty("db2.password") );
+    dmDataSource.setDriverClassName( props.getProperty(prefix + ".driver") );
+    dmDataSource.setUrl( props.getProperty(prefix + ".jdbcurl") );
+    dmDataSource.setUsername( props.getProperty(prefix + ".user") );
+    dmDataSource.setPassword( props.getProperty(prefix + ".password") );
     return dmDataSource;
   }
 

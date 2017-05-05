@@ -27,8 +27,11 @@ public class DatabaseDumper {
      }
      File testFolder = new File(args[0]);
      if (!testFolder.exists()) {
-       System.out.println("The test folder '" + testFolder.getAbsolutePath() + "' does not exist");
-       return;
+       if (!testFolder.mkdirs()) {
+         System.err.println("Could not create the test folder '" + testFolder.getAbsolutePath() + "'.");
+         return;
+       }
+       System.out.println("Created test folder '" + testFolder.getAbsolutePath() + "'.");
      }
 
      Properties props ;

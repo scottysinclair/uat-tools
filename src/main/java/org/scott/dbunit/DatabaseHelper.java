@@ -61,7 +61,7 @@ public class DatabaseHelper {
     prepareDatabaseFromPath('/' + testName + "/" + prepareFileName);
   }
 
-  private void prepareDatabaseFromPath(String datasetPath) throws Exception {
+  public void prepareDatabaseFromPath(String datasetPath) throws Exception {
     IDatabaseTester databaseTester = new DataSourceDatabaseTester(dataSource);
     databaseTester.setSetUpOperation(DatabaseOperation.CLEAN_INSERT);
     databaseTester.setDataSet(readDataSetFromClasspath(datasetPath));
