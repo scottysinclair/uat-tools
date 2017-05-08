@@ -21,11 +21,18 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 public class DatabaseDumper {
 
   public static void main(String args[]) throws Exception {
-     if (args.length < 1) {
-       System.out.println("Please specify the test  folder");
+     if (args.length < 2) {
+       System.err.println("Please specify the test  folder and the type of dump 'input' or 'expected'");
        return;
      }
      File testFolder = new File(args[0]);
+     String dumpType = args[1];
+
+     if (!dumpType.equals("input") && !dumpType.equals("expected")) {
+       System.err.println("'input' or 'expected' must be specified as second parameter.");
+       return;
+     }
+
      if (!testFolder.exists()) {
        if (!testFolder.mkdirs()) {
          System.err.println("Could not create the test folder '" + testFolder.getAbsolutePath() + "'.");
@@ -42,28 +49,62 @@ public class DatabaseDumper {
        System.out.println("Could not find the app.properties file in the current working directory.");
        return;
      }
-     try {
-       dumpNew(testFolder, props);
+
+     if ("input".equals( dumpType )) {
+       try {
+         dumpNewInput(testFolder, props);
+       }
+       catch(Exception x) {
+         System.err.println("Error dumping new db, " + x.getMessage());
+       }
+       try {
+         dumpIntInput(testFolder, props);
+       }
+       catch(Exception x) {
+         System.err.println("Error dumping old db, " + x.getMessage());
+       }
      }
-     catch(Exception x) {
-       System.err.println("Error dumping new db, " + x.getMessage());
-     }
-     try {
-       dumpInt(testFolder, props);
-     }
-     catch(Exception x) {
-       System.err.println("Error dumping old db, " + x.getMessage());
+     else if ("expected".equals( dumpType )) {
+       try {
+         dumpNewExpected(testFolder, props);
+       }
+       catch(Exception x) {
+         System.err.println("Error dumping new db, " + x.getMessage());
+       }
+       try {
+         dumpIntExpected(testFolder, props);
+       }
+       catch(Exception x) {
+         System.err.println("Error dumping old db, " + x.getMessage());
+       }
      }
   }
 
-  private static void dumpNew(File testFolder, Properties props) throws IOException {
+  private static void dumpNewInput(File testFolder, Properties props) throws IOException {
+    dumpNew(testFolder, props, "input_ds.xml");
+  }
+
+  private static void dumpNewExpected(File testFolder, Properties props) throws IOException {
+    dumpNew(testFolder, props, "expected_result_1.xml");
+  }
+
+  private static void dumpNew(File testFolder, Properties props, String fileName) throws IOException {
     DataSource pgDataSource = createDataSource("pg",  props );
     DatabaseHelper helper = new DatabaseHelper(pgDataSource, null, null);
-    File dumpFile = new File(testFolder, "input_ds.xml");
+    File dumpFile = new File(testFolder, fileName);
     helper.dumpDatabase( dumpFile, getTableFilter(props) );
   }
 
-  private static void dumpInt(File testFolder, Properties props) throws IOException {
+  private static void dumpIntInput(File testFolder, Properties props) throws IOException {
+    dumpInt(testFolder, props, "input_dsInt.xml");
+  }
+
+  private static void dumpIntExpected(File testFolder, Properties props) throws IOException {
+    dumpInt(testFolder, props, "expected_result_2.xml");
+  }
+
+
+  private static void dumpInt(File testFolder, Properties props, String fileName) throws IOException {
     DataSource pgDataSource = createDataSource("db2",  props );
     DatabaseHelper helper = new DatabaseHelper(pgDataSource, null, null);
     File dumpFile = new File(testFolder, "input_dsInt.xml");
