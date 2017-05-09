@@ -1,4 +1,4 @@
-package org.scott.dbunit;
+package org.scott.uattools;
 
 import java.io.File;
 import java.io.FileInputStream;
